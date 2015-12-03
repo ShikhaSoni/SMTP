@@ -1,34 +1,44 @@
-
-import java.io.*;
-
-import java.net.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.security.KeyStore;
-import javax.net.ssl.*;
+
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import javax.xml.bind.DatatypeConverter;
 
 public class SMTPServer extends Thread {
 
-	private final static int SMTP_PORT = 25;
-	private final static String MAIL_SERVER = "smtp.gmail.com";
-	private final static String SENDER_EMAIL = "<fcnprojectsmtp@gmail.com>";
-	private final static String RECEIVER_EMAIL = "<omkarhegde2806@gmail.com>";
-	private final static String EMAIL_MESSAGE = "This is a test email agent!";
-	
-	private int threadID;
-	
-	public SMTPServer(int threadID) {
-		this.threadID = threadID;
+	public static String getMailServer(String receiverEmail) {
+		
+		if(receiverEmail.contains(Constants.GMAIL_ADDRESS)) {
+			return Constants.GMAIL_SMTP_HOST;
+		}
+		else {
+			return "localhost";
+		}
 	}
 	
-	public void sendEmail() {
+	public void sendEmail(String senderEmail, String receiverEmail, String emailMessage) {
 		
 		try
 		{
-			System.setProperty("javax.net.ssl.trustStore","C:\\Program Files\\Java\\jre7\\lib\\security\\cacerts");
-		    System.setProperty("javax.net.ssl.trustStorePassword","changeit");
+			System.setProperty("javax.net.ssl.trustStore", Constants.KEYSTORE_PATH);
+		    System.setProperty("javax.net.ssl.trustStorePassword", Constants.KEYSTORE_PASSWORD);
+		    
+		    String mailServer = getMailServer(receiverEmail);
 		     
 			// Establish a TCP connection with the mail server.
-		    Socket sendEmailSocket = new Socket(MAIL_SERVER, SMTP_PORT);
+		    Socket sendEmailSocket = new Socket(mailServer, Constants.SMTP_PORT);
 
 			// Create a BufferedReader to read a line at a time.
 			InputStream is = sendEmailSocket.getInputStream();
@@ -46,7 +56,8 @@ public class SMTPServer extends Thread {
 			OutputStream os = sendEmailSocket.getOutputStream();
 
 			// Send HELO command and get server response.
-			String command = "HELO " + "129.21.86.199"+"\r\n";
+			//TODO: remove hard coded IP or use EC2 public IP
+			String command = Constants.HELO_COMMAND + " 129.21.86.199" + Constants.MESSAGE_TERMINATION;
 			os.write(command.getBytes("US-ASCII"));
 			response = br.readLine();
 
@@ -55,13 +66,14 @@ public class SMTPServer extends Thread {
 			if (!response.startsWith("250")) {
 				throw new Exception("250 reply not received from server.");
 			}
+			
 			// Send MAIL FROM command.
-			command = "STARTTLS" +"\r\n";
+			command = Constants.TLS_COMMAND + " " + Constants.MESSAGE_TERMINATION;
 			os.write(command.getBytes("US-ASCII"));
 			response = br.readLine();
 			System.out.println(response);
 
-			String keystoreFile = "C:\\Program Files\\Java\\jre7\\lib\\security\\cacerts";
+			String keystoreFile = Constants.KEYSTORE_PATH;
 
 			SSLContext sslContext = SSLContext.getInstance("TLSv1");
 			String defaultAlgorithm = KeyManagerFactory.getDefaultAlgorithm();
@@ -74,7 +86,7 @@ public class SMTPServer extends Thread {
 			File actualKeystoreFile = new File(keystoreFile);
 			try {
 				in = new FileInputStream(actualKeystoreFile);
-				keyStore.load(in, "changeit".toCharArray());
+				keyStore.load(in, Constants.KEYSTORE_PASSWORD.toCharArray());
 			} catch (IOException e) {
 				System.out.println("cannot open key file");
 			} finally {
@@ -83,15 +95,14 @@ public class SMTPServer extends Thread {
 				}
 			}
 
-			keyManagerFactory.init(keyStore, "changeit".toCharArray());
+			keyManagerFactory.init(keyStore, Constants.KEYSTORE_PASSWORD.toCharArray());
 			KeyManager[] keyManagers = keyManagerFactory.getKeyManagers();
 
 			sslContext.init(keyManagers, null, null);
 
 
-
-			SSLSocketFactory ssf = sslContext.getSocketFactory();//(SSLSocketFactory) SSLSocketFactory.getDefault();
-			SSLSocket s = (SSLSocket) ssf.createSocket(sendEmailSocket, "smtp.gmail.com", 465, true);
+			SSLSocketFactory ssf = sslContext.getSocketFactory();
+			SSLSocket s = (SSLSocket) ssf.createSocket(sendEmailSocket, mailServer, Constants.SMTP_SECURE_PORT, true);
 			String[] st = s.getEnabledProtocols();
 
 			s.setEnabledProtocols(st);
@@ -108,14 +119,14 @@ public class SMTPServer extends Thread {
 			br = new BufferedReader(isr);
 			os = s.getOutputStream();
 
-
-			command = "HELO " + "129.21.84.87"+"\r\n";
+			//TODO: remove hard coded IP
+			command = Constants.HELO_COMMAND + " 129.21.86.11" + Constants.MESSAGE_TERMINATION;
 			os.write(command.getBytes("US-ASCII"));
 			response = br.readLine();
 			System.out.println(response);
 
-			// Send RCPT TO command.
-			command = "AUTH LOGIN"+"\r\n";
+			//TODO: why do we need to login if sending from our own server?
+			command = Constants.LOGIN_COMMAND + Constants.MESSAGE_TERMINATION;
 			os.write(command.getBytes("US-ASCII"));
 			response = br.readLine();
 			System.out.println(response);
@@ -123,54 +134,42 @@ public class SMTPServer extends Thread {
 			String message = "fcnprojectsmtp";
 			String encoded = DatatypeConverter.printBase64Binary(message.getBytes("UTF-8"));
 
-
-			// Send DATA command.
-			command = encoded+"\r\n";
+			command = encoded+ Constants.MESSAGE_TERMINATION;
 			os.write(command.getBytes("US-ASCII"));
 			response = br.readLine();
 			System.out.println("Username Response " + response);
 
-
 			message = "thisisapassword";
 			encoded = DatatypeConverter.printBase64Binary(message.getBytes("UTF-8"));
-			// Send message data.
-			command = encoded+"\r\n";
+			
+			command = encoded + Constants.MESSAGE_TERMINATION;
 			os.write(command.getBytes("US-ASCII"));
 			response = br.readLine();
 			System.out.println("Password Response " +response);
 
-			command = "MAIL FROM: "+SENDER_EMAIL+"\r\n";
+			command = Constants.MAIL_FROM_COMMAND + " " + senderEmail + Constants.MESSAGE_TERMINATION;
 			os.write(command.getBytes("US-ASCII"));
 			response = br.readLine();
 			System.out.println("Mail from " + response);
 
-			// End with line with a single period.
-			command = "RCPT TO: "+RECEIVER_EMAIL+"\r\n";
+			command = Constants.RCPT_TO_COMMAND + " " + receiverEmail + Constants.MESSAGE_TERMINATION;
 			os.write(command.getBytes("US-ASCII"));
 			response = br.readLine();
 			System.out.println("Receipt " + response);
 
-
-			// Send QUIT command.
-			command = "DATA"+"\r\n";
+			command = "DATA"+ Constants.MESSAGE_TERMINATION;
 			os.write(command.getBytes("US-ASCII"));
 			response = br.readLine();
 			System.out.println("Data command " + response);
 
-			command = EMAIL_MESSAGE+"\r\n";
+			command = emailMessage + Constants.MESSAGE_TERMINATION;
 			os.write(command.getBytes("US-ASCII"));
-			//response = br.readLine();
-			//System.out.println("Message " + response);
 
-			command = "\r\n."+"\r\n";
+			command = Constants.SENDING_TERMINATION + Constants.MESSAGE_TERMINATION;
 			os.write(command.getBytes("US-ASCII"));
 			response = br.readLine();
 
-
-			//os.write(command.getBytes("US-ASCII"));
-			//response = br.readLine();
-			System.out.println("DONE " + response);
-
+			System.out.println("Message Sent Successfully " + response);
 		}
 		catch(Exception e) {
 			e.printStackTrace();
@@ -178,49 +177,63 @@ public class SMTPServer extends Thread {
 	}
 	
 	public void receiveEmail() {
-		
-		try {
-			ServerSocket receive = new ServerSocket(25);
-			Socket test = receive.accept();
-	
-			InputStream is = test.getInputStream();
-			InputStreamReader isr = new InputStreamReader(is);
-			BufferedReader br = new BufferedReader(isr);
-			OutputStream os = test.getOutputStream();
-	
-			os.write("220 129.21.85.163 SMTP service ready\r\n".getBytes("US-ASCII"));
-	
-			System.out.println(br.readLine());
-			
-			os.write("250 Ready to go\r\n".getBytes("US-ASCII"));
-			
-			while(true) {
+
+		while (true) {
+
+			try {
+				//TODO: add synchronization for port 25
+				ServerSocket receive = new ServerSocket(25);
+
+				Socket socket = receive.accept();
+
+				InputStream is = socket.getInputStream();
+				InputStreamReader isr = new InputStreamReader(is);
+				BufferedReader br = new BufferedReader(isr);
+				OutputStream os = socket.getOutputStream();
+				String command = null;
+
+				command = Constants.SERVICE_READY + " SMTP service ready" + Constants.MESSAGE_TERMINATION;
+
+				os.write(command.getBytes("US-ASCII"));
+
 				System.out.println(br.readLine());
+
+				command = Constants.OPERATION_COMPLETE + " Ready to go" + Constants.MESSAGE_TERMINATION;
+
+				os.write(command.getBytes("US-ASCII"));
+
+				String receivedResponse = "";
+
+				while (receivedResponse.equals(Constants.QUIT_COMMAND) == false) {
+					receivedResponse = br.readLine();
+					System.out.println(receivedResponse);
+
+					command = Constants.OPERATION_COMPLETE + " " + Constants.MESSAGE_TERMINATION;
+					os.write(command.getBytes("US-ASCII"));
+				}
+
+				System.out.println("Received EMAIL Successfully!");
+				socket.close();
+				receive.close();
 				
-				os.write("250\r\n".getBytes("US-ASCII"));
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
-		} catch(Exception e) {
-			e.printStackTrace();
 		}
-		
 	}
 	
 	public void run() {
-		if(threadID == 1) {
-			sendEmail();
-		}
-		else {
-			receiveEmail();
-		}
+		receiveEmail();
 	}
 
 	public static void main(String[] args) throws Exception {
 		
-		SMTPServer sendingThread = new SMTPServer(1);
-		SMTPServer receivingThread = new SMTPServer(2);
+		SMTPServer receivingThread = new SMTPServer();
 		
-		sendingThread.start();
 		receivingThread.start();
+		
+		//TODO: call this from the UI
+		//new SMTPServer().sendEmail("<omkar@129.21.86.11>", "<omkarhegde2806@gmail.com>", "This is a new test");
 		
 	}
 }
