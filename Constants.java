@@ -25,6 +25,6 @@ public class Constants {
 	public static final String SENDING_TERMINATION = "\r\n.";
 	
 	public static final String GMAIL_ADDRESS = "gmail.com";
-	public static final String GMAIL_SMTP_HOST = "smtp.gmail.com";
+	public static final String GMAIL_SMTP_HOST = "aspmx.l.google.com";
 	
 }

@@ -24,6 +24,7 @@ public class SMTPServer extends Thread {
 			return Constants.GMAIL_SMTP_HOST;
 		}
 		else {
+			//TODO: This is dead code for now. Enter EC2 public IP here
 			return "localhost";
 		}
 	}
@@ -108,6 +109,7 @@ public class SMTPServer extends Thread {
 			s.setEnabledProtocols(st);
 
 			s.setNeedClientAuth(false);  
+
 			
 			s.startHandshake();
 
@@ -125,28 +127,6 @@ public class SMTPServer extends Thread {
 			response = br.readLine();
 			System.out.println(response);
 
-			//TODO: why do we need to login if sending from our own server?
-			command = Constants.LOGIN_COMMAND + Constants.MESSAGE_TERMINATION;
-			os.write(command.getBytes("US-ASCII"));
-			response = br.readLine();
-			System.out.println(response);
-
-			String message = "fcnprojectsmtp";
-			String encoded = DatatypeConverter.printBase64Binary(message.getBytes("UTF-8"));
-
-			command = encoded+ Constants.MESSAGE_TERMINATION;
-			os.write(command.getBytes("US-ASCII"));
-			response = br.readLine();
-			System.out.println("Username Response " + response);
-
-			message = "thisisapassword";
-			encoded = DatatypeConverter.printBase64Binary(message.getBytes("UTF-8"));
-			
-			command = encoded + Constants.MESSAGE_TERMINATION;
-			os.write(command.getBytes("US-ASCII"));
-			response = br.readLine();
-			System.out.println("Password Response " +response);
-
 			command = Constants.MAIL_FROM_COMMAND + " " + senderEmail + Constants.MESSAGE_TERMINATION;
 			os.write(command.getBytes("US-ASCII"));
 			response = br.readLine();
@@ -162,8 +142,19 @@ public class SMTPServer extends Thread {
 			response = br.readLine();
 			System.out.println("Data command " + response);
 
+			command = "From: " + senderEmail + Constants.MESSAGE_TERMINATION;
+			os.write(command.getBytes("US-ASCII"));
+			
+			command = "To: " + receiverEmail + Constants.MESSAGE_TERMINATION;
+			os.write(command.getBytes("US-ASCII"));
+			
+			//TODO: add subject param to this method
+			command = "Subject: This is a Hello Message" + Constants.MESSAGE_TERMINATION;
+			os.write(command.getBytes("US-ASCII"));
+			
 			command = emailMessage + Constants.MESSAGE_TERMINATION;
 			os.write(command.getBytes("US-ASCII"));
+
 
 			command = Constants.SENDING_TERMINATION + Constants.MESSAGE_TERMINATION;
 			os.write(command.getBytes("US-ASCII"));
@@ -233,7 +224,7 @@ public class SMTPServer extends Thread {
 		receivingThread.start();
 		
 		//TODO: call this from the UI
-		//new SMTPServer().sendEmail("<omkar@129.21.86.11>", "<omkarhegde2806@gmail.com>", "This is a new test");
+		new SMTPServer().sendEmail("<omkar@129.21.86.208>", "<omkarhegde2806@gmail.com>", "This is a new test");
 		
 	}
 }
