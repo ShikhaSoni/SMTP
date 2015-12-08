@@ -108,9 +108,12 @@ public class IMAP extends Thread {
 			String com=null;
 			if ((com=in.nextLine()).contains("FETCH")&& com.startsWith("a4")) {
 				//com.substring(com.indexOf("FETCH"));
+				int i=1;
 				if (selected.equals("INBOX")) {
 					out.println(">Inbox");
 					for (Email email : InboxEmails) {
+						out.println("* " + (i + 1) + " FETCH (BODY[]");
+						i++;
 						out.println(email.getID() + ":" + email.getTimeStamp()
 								+ ":" + email.getFrom() + ":"
 								+ email.getContent());
@@ -118,6 +121,8 @@ public class IMAP extends Thread {
 				} else {
 					out.println(">Sent Mails");
 					for (Email email : sentEmails) {
+						out.println("* " + (i + 1) + " FETCH (BODY[]");
+						i++;
 						out.println(email.getID() + ":" + email.getTimeStamp()
 								+ ":" + email.getTo() + ":"
 								+ email.getContent());
