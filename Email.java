@@ -1,20 +1,23 @@
 
 public class Email {
-	private int ID;
+	private String ID;
 	private String To;
 	private String From;
 	private String content;
 	private String timeStamp;
 	private String subject;
-	public Email(String To, String subject, String content){
+	public Email(String ID, String To, String From, String content,String timeStamp, String subject){
+		this.ID = ID;
+		this.From = From;
+		this.timeStamp = timeStamp;
 		this.content=content;
 		this.To=To;
 		this.subject=subject;
 	}
-	public int getID() {
+	public String getID() {
 		return ID;
 	}
-	public void setID(int iD) {
+	public void setID(String iD) {
 		ID = iD;
 	}
 	public String getTo() {
