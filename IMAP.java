@@ -1,5 +1,10 @@
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -17,11 +22,15 @@ public class IMAP extends Thread {
 			e.printStackTrace();
 		}
 	}
+	public static void main(String args[]){
+		new IMAP().start();
+	}
 
 	public void run() {
 		while (true) {
 			try {
 				clientSocket = IMAP_Socket.accept();
+				System.out.println(clientSocket);
 				new ClientRequest(clientSocket).start();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -31,8 +40,8 @@ public class IMAP extends Thread {
 
 	class ClientRequest extends Thread {
 		Socket clientSocket;
-		private Scanner in;
-		private PrintWriter out;
+		private BufferedReader reader;
+		private DataOutputStream writer;
 		private ArrayList<Email> emails = null;
 		private ArrayList<Email> InboxEmails = null;
 		private ArrayList<Email> sentEmails = null;
@@ -40,8 +49,8 @@ public class IMAP extends Thread {
 		public ClientRequest(Socket clientSocket) {
 			this.clientSocket = clientSocket;
 			try {
-				in = new Scanner(clientSocket.getInputStream());
-				out = new PrintWriter(clientSocket.getOutputStream(), true);
+				writer= new DataOutputStream(clientSocket.getOutputStream());
+				reader= new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -51,85 +60,97 @@ public class IMAP extends Thread {
 			System.out.println(">" + Thread.currentThread().toString()
 					+ clientSocket.getPort() + " "
 					+ clientSocket.getLocalPort());
-			System.out.println("* OK ready for requests");
-			String auth = in.nextLine();
-			String loginString = "a1 login";
-			String listCom = "a2 LIST \"\" \"*\"";
-			String examineCom = "EXAMINE";
-			String user;
-			String pass;
-			String[] userpass = null;
-			if (!auth.contains(loginString)) {
-				out.println("Wrong command");
-				return;
-			}
-			userpass = auth.substring(loginString.length()).split(" ");
-			user = userpass[0];
-			pass = userpass[1];
-			boolean exists = false;
-			for (Client c : SMTPServer.emailStorage.keySet()) {
-				if (c.getUsername().equals(user)) {
-					if (c.getPassword().equals(pass)) {
-						out.println("> a1 OK " + user + " Logged in SUCCESS ");
-						emails = SMTPServer.emailStorage.get(c);
-					}
-					exists = true;
-					break;
+			try {
+				System.out.println(reader.readLine());
+				writer.write(("* OK ready for requests"+ '\n').getBytes("US-ASCII"));
+				writer.flush();
+				System.out.println("waiting");
+				String auth = reader.readLine();
+				System.out.println(auth);
+				String loginString = "a1 login";
+				String user;
+				String pass;
+				String[] userpass = null;
+				if (!auth.contains(loginString)) {
+					writer.writeBytes(("Wrong command" + '\n'));
+					return;
 				}
-			}
-			if (!exists) {
-				out.println(">No user found");
-				return;
-			}
-			for (Email email : emails) {
-				if (email.getFrom().equals(user))
-					sentEmails.add(email);
-				else
-					InboxEmails.add(email);
-			}
-			if (in.nextLine().equalsIgnoreCase(listCom))
-				out.println(">* LIST \".\" \" INBOX\" \"SENT\" ");
+				userpass = auth.substring(loginString.length()).split(" ");
+				user = userpass[0];
+				pass = userpass[1];
+				boolean exists = false;
+				for (Client c : SMTPServer.emailStorage.keySet()) {
+					if (c.getUsername().equals(user)) {
+						if (c.getPassword().equals(pass)) {
+							writer.writeBytes("> a1 OK " + user + " Logged in SUCCESS "+ '\n');
+							emails = SMTPServer.emailStorage.get(c);
+						}
+						exists = true;
+						break;
+					}
+				}
+				if (!exists) {
+					writer.writeBytes(">No user found");
+					return;
+				}
+				for (Email email : emails) {
+					if (email.getFrom().equals(user))
+						sentEmails.add(email);
+					else
+						InboxEmails.add(email);
+				}
+				if (reader.readLine().equalsIgnoreCase("a2 LIST \"\" \"*\""))
+					writer.write((">* LIST \".\" \" INBOX\" \"SENT\" ").getBytes());
 
-			String next = in.nextLine();
-			String selected = null;
-			if (next.contains(examineCom) && next.startsWith("a3")) {
-				if (next.contains("INBOX")) {
-					out.println(">* OK Read-only mailboxe");
-					selected = "INBOX";
-					out.println(">* " + InboxEmails.size() + " EXITS");
-					out.println("> a3 OK [READ-ONLY] Select completed.");
-				} else if (next.contains("SENT")) {
-					out.println(">* OK Read-only mailboxe");
-					selected = "SENT";
-					out.println(">* " + sentEmails.size() + " EXITS");
-					out.println("> a3 OK [READ-ONLY] Select completed.");
-				}
-			}
-			String com=null;
-			if ((com=in.nextLine()).contains("FETCH")&& com.startsWith("a4")) {
-				//com.substring(com.indexOf("FETCH"));
-				int i=1;
-				if (selected.equals("INBOX")) {
-					out.println(">Inbox");
-					for (Email email : InboxEmails) {
-						out.println("* " + (i + 1) + " FETCH (BODY[]");
-						i++;
-						out.println(email.getID() + ":" + email.getTimeStamp()
-								+ ":" + email.getFrom() + ":"
-								+ email.getContent());
-					}
-				} else {
-					out.println(">Sent Mails");
-					for (Email email : sentEmails) {
-						out.println("* " + (i + 1) + " FETCH (BODY[]");
-						i++;
-						out.println(email.getID() + ":" + email.getTimeStamp()
-								+ ":" + email.getTo() + ":"
-								+ email.getContent());
+				String next = reader.readLine();
+				String selected = null;
+				
+				//this should be twice
+				if (next.contains("EXAMINE") && next.startsWith("a3")) {
+					if (next.contains("INBOX")) {
+						writer.write((">* OK Read-only mailbox").getBytes());
+						selected = "INBOX";
+						writer.write((">* " + InboxEmails.size() + " EXITS").getBytes());
+						writer.write(("> a3 OK [READ-ONLY] Select completed.").getBytes());
+					} else if (next.contains("SENT")) {
+						writer.write((">* OK Read-only mailbox").getBytes());
+						selected = "SENT";
+						writer.write((">* " + sentEmails.size() + " EXITS").getBytes());
+						writer.write(("> a3 OK [READ-ONLY] Select completed.").getBytes());
 					}
 				}
+				
+				if ((next=reader.readLine()).contains("FETCH")&& next.startsWith("a4")) {
+					//com.substring(com.indexOf("FETCH"));
+					int i=1;
+					if (selected.equals("INBOX")) {
+						writer.write((">Inbox").getBytes());
+						for (Email email : InboxEmails) {
+							writer.write(("* " + (i + 1) + " FETCH (BODY[]").getBytes());
+							i++;
+							writer.write((email.getID() + ":" + email.getTimeStamp()
+									+ ":" + email.getFrom() + ":"
+									+ email.getContent()).getBytes());
+						}
+					} else {
+						writer.write((">Sent Mails").getBytes());
+						for (Email email : sentEmails) {
+							writer.write(("* " + (i + 1) + " FETCH (BODY[]").getBytes());
+							i++;
+							writer.write((email.getID() + ":" + email.getTimeStamp()
+									+ ":" + email.getTo() + ":"
+									+ email.getContent()).getBytes());
+						}
+					}
+				}
+				writer.write(("a4 OK Fetching complete").getBytes());
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-			out.println("a4 OK Fetching complete");
 		}
 	}
 }
