@@ -42,8 +42,12 @@ public class SMTPServer extends Thread {
 			System.setProperty("javax.net.ssl.trustStore", Constants.KEYSTORE_PATH);
 		    System.setProperty("javax.net.ssl.trustStorePassword", Constants.KEYSTORE_PASSWORD);
 		    
-			if(emailStorage.contains(mailToSend.getFrom())) {
+		    System.out.println(mailToSend.getFrom());
+			if(emailStorage.containsKey(new Client(mailToSend.getFrom()))) {
+				System.out.println("hitting");
 				emailStorage.get(new Client(mailToSend.getFrom())).add(mailToSend);
+			}else {
+				System.out.println("not added");
 			}
 		    
 		    String mailServer = getMailServer(mailToSend.getTo());
@@ -239,7 +243,7 @@ public class SMTPServer extends Thread {
 				}
 				
 				Email receivedMail = new Email(messageID, toEmail, senderEmail, messageBody, dateAndTime, subject);
-				if(emailStorage.contains(toEmail)) {
+				if(emailStorage.containsKey(new Client(toEmail))) {
 					emailStorage.get(new Client(toEmail)).add(receivedMail);
 				}
 
@@ -265,11 +269,12 @@ public class SMTPServer extends Thread {
 		
 		SMTPServer receivingThread = new SMTPServer();
 		
-		receivingThread.start();
+		//receivingThread.start();
 		
 		//TODO: call this from the UI
-		Email newMail = new Email("123", "<omkarhegde2806@gmail.com>", "<omkar@129.21.86.208>", "This is a test", "30th Feb 2016" , "Test subject")
+		Email newMail = new Email("123", "<omkarhegde2806@gmail.com>", "<omkar@129.21.85.33>", "This is a test", "30th Feb 2016" , "Test subject");
 		new SMTPServer().sendEmail(newMail);
+		
 		
 	}
 }

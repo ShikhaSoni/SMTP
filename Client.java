@@ -29,4 +29,9 @@ public class Client {
 	public boolean equals(Object obj) {
 		return this.username.equals(((Client)obj).username);		
 	}
+	
+	@Override
+	public int hashCode() {
+		return username.hashCode();
+	}
 }
