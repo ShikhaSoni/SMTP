@@ -1,1 +1,1 @@
->keytool -import -alias smtp.gmail.com -keystore "%JAVA_HOME%/jre/lib/security/cacerts" -file C:\Users\Omkar\OneDrive\Homework\FCN\gmail.cert
+ keytool -import -alias smtp.gmail.com -keystore "%JAVA_HOME%/jre/lib/security/cacerts" -file C:\Users\ShikhaSoni\Desktop\SMTP\gmail.cert

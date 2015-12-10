@@ -9,9 +9,7 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Scanner;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -26,19 +24,21 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
 class FrontEnd {
-	private Email[] inbox = { new Email("Shikha", "Soniiiiiiii", "Helllo") };
-	private Email[] Sent = { new Email("ketki", "Shikha", "hey") };
+	private Email[] inbox /*= { new Email("Shikha", "", "Soniiiiiiii", "Helllo", "", "") }*/;
+	private Email[] Sent = { new Email("ketki", "","Shikha", "hey", "", "") };
 	
 	JFrame mainFrame = new JFrame();
 	JFrame composeFrame = new JFrame("E-mail Sender");
+	JFrame openFrame = new JFrame("Mail");
 	
 	JPanel mainPanel = new JPanel();
 	
 	JButton openButton = new JButton("Open Mail");
 	JButton composeButton = new JButton("Compose new");
 	private JButton buttonSend = new JButton("SEND");
+	JButton back = new JButton("Back");
 	
-	private JList<Email> Inbox = new JList<Email>(inbox);
+	
 	private JList<Email> sent = new JList<Email>(Sent);
 	
 	private JLabel labelTo = new JLabel("To: ");
@@ -54,6 +54,7 @@ class FrontEnd {
 	String username, password;
 
 	private GridBagConstraints constraints = new GridBagConstraints();
+	private GridBagConstraints constraintsMail= new GridBagConstraints();
 	JFrame frame;
 
 	public FrontEnd() {
@@ -78,6 +79,7 @@ class FrontEnd {
 
 		JTextField userText = new JTextField(20);
 		userText.setBounds(100, 10, 160, 25);
+		userText.setText("<omkar@129.21.85.33>");
 		panel.add(userText);
 
 		JLabel passwordLabel = new JLabel("Password");
@@ -100,6 +102,7 @@ class FrontEnd {
 				password=passwordText.getText();
 				frame.setVisible(false);
 				connectIMAP();
+				System.out.println("Goin to main window with"+inbox.length);
 				mainWindow();
 			}
 		});
@@ -132,7 +135,7 @@ class FrontEnd {
 			System.out.println("Server: "+command);
 			if(command.contains("OK")){
 				writer.writeBytes("a1 LOGIN "+ username+" "+ password+ '\n');
-				System.out.println("OK found"+ username+":"+password);
+				//System.out.println("OK found"+ username+":"+password);
 			}
 			else if(command.equals("Wrong command")){
 				System.out.println("Wrong command");
@@ -142,17 +145,40 @@ class FrontEnd {
 				//Do something here
 			}
 			command=reader.readLine();
+			System.out.println(command);
 			if(command.contains("OK") && command.contains("SUCCESS")){
+				System.out.println("Examine command");
 				writer.writeBytes("a3 EXAMINE INBOX"+ '\n');
 			}
 			command=reader.readLine();
+			System.out.println(command);
+			command=reader.readLine();
+			System.out.println(command);
+			int number=Integer.parseInt(command.split(" ")[1]);
+			System.out.println(number);
+			inbox= new Email[number];
+			
+			command=reader.readLine();
+			System.out.println(command);
 			if(command.contains("OK")){
 				System.out.println("Successfully examined");
-				writer.writeBytes("a4 FETCH BODY");
+				writer.writeBytes("a4 FETCH BODY"+ '\n');
 			}
-			while(true){
-				System.out.println(reader.readLine());
+			command=reader.readLine();
+			System.out.println(command);
+			command=reader.readLine();
+			System.out.println(command);
+			int i=1;
+			while(i<=number){
+				String email=reader.readLine();
+				String a[]=email.split(":");
+				System.out.println(email);
+				inbox[i-1]=new Email(a[0],a[3],a[2],a[4], a[1], a[5]);
+				i++;
 			}
+			command=reader.readLine();
+			System.out.println(command);
+			//System.out.println("Set main window");
 			
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -160,10 +186,18 @@ class FrontEnd {
 	}
 
 	public void mainWindow() {
+		System.out.println(inbox.length);
+		JList<Email> Inbox = new JList<Email>(inbox);
+		System.out.println(Inbox.size());
+		if(mainFrame==null){
+			System.out.println("Null-------------");
+			System.exit(0);
+		}
 		mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		mainFrame.setSize(200, 200);
 		mainFrame.add(mainPanel);
 		mainPanel.setLayout(new GridLayout(2, 2));
+		mainFrame.setVisible(true);
 		composeButton.addActionListener(new ActionListener() {
 
 			@Override
@@ -178,8 +212,8 @@ class FrontEnd {
 				SwingUtilities.invokeLater(new Runnable() {
 					@Override
 					public void run() {
-						composeMail();
 						mainFrame.setVisible(false);
+						composeMail();
 					}
 				});
 			}
@@ -188,43 +222,83 @@ class FrontEnd {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				mainFrame.setVisible(false);
-				Email email = Inbox.getSelectedValue();
-				Email email1 = sent.getSelectedValue();
-				Email openmail;
-				if (email != null)
-					openmail = email;
-				else
-					openmail = email1;
-				JFrame frame = new JFrame(openmail.getSubject());
-				frame.setSize(400, 400);
-				JPanel panel = new JPanel();
-				frame.add(panel);
-				JLabel label = new JLabel(openmail.getContent());
-				JButton back = new JButton("Back");
-				panel.add(back);
-				panel.add(label);
-				frame.setVisible(true);
-				back.addActionListener(new ActionListener() {
-
-					@Override
-					public void actionPerformed(ActionEvent arg0) {
-						frame.setVisible(false);
-						mainFrame.setVisible(true);
-					}
-				});
+				showMail(Inbox.getSelectedValue());
 			}
 		});
 
 		Inbox.setVisibleRowCount(4);
-		sent.setVisibleRowCount(4);
+		//sent.setVisibleRowCount(4);
 		JScrollPane pane = new JScrollPane(Inbox);
-		JScrollPane pane1 = new JScrollPane(sent);
+		//JScrollPane pane1 = new JScrollPane(sent);
 		mainPanel.add(openButton);
 		mainPanel.add(pane/* , BorderLayout.NORTH */);
 		mainPanel.add(composeButton/* , BorderLayout.SOUTH */);
-		mainPanel.add(pane1);
-		mainFrame.setVisible(true);
+		//mainPanel.add(pane1);
+	}
+	public void showMail(Email e){
+		 JLabel fieldTo = new JLabel(e.getTo());
+		 JLabel fieldSubject = new JLabel(e.getSubject());
+
+		 JLabel textAreaMessage = new JLabel(e.getContent());
+		
+		openFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		openFrame.setLayout(new GridBagLayout());
+		constraintsMail.anchor = GridBagConstraints.WEST;
+		constraintsMail.insets = new Insets(5, 5, 5, 5);
+		openFrame.setVisible(true);
+		openFrame.pack();
+		openFrame.setLocationRelativeTo(null); // center on screen
+		openFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		
+		constraintsMail.gridx = 0;
+		constraintsMail.gridy = 0;
+		openFrame.add(labelTo, constraintsMail);
+
+		constraintsMail.gridx = 1;
+		constraintsMail.fill = GridBagConstraints.HORIZONTAL;
+		openFrame.add(fieldTo, constraintsMail);
+
+		constraintsMail.gridx = 0;
+		constraintsMail.gridy = 1;
+		openFrame.add(labelSubject, constraintsMail);
+
+		constraintsMail.gridx = 1;
+		constraintsMail.fill = GridBagConstraints.HORIZONTAL;
+		openFrame.add(fieldSubject, constraintsMail);
+
+		constraintsMail.gridx = 2;
+		constraintsMail.gridy = 0;
+		constraintsMail.gridheight = 2;
+		constraintsMail.fill = GridBagConstraints.BOTH;
+		back.setFont(new Font("Arial", Font.BOLD, 16));
+		openFrame.add(back, constraintsMail);
+
+		buttonSend.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				/*// add event
+				// if(!validateFields()){
+				To = fieldTo.getText();
+				Subject = fieldSubject.getText();
+				Content = textAreaMessage.getText();
+				openFrame.setVisible(false);
+				mainFrame.setVisible(true);
+				Email email= new Email("1", "<"+To+">", "<shikha@127.5.3.4>", Content, "", Subject);
+				new SMTPServer().sendEmail(email);
+				// }
+*/
+			}
+		});
+
+		constraintsMail.gridx = 0;
+		constraintsMail.gridy = 2;
+		constraintsMail.gridheight = 1;
+		constraintsMail.gridwidth = 3;
+		constraintsMail.gridy = 3;
+		constraintsMail.weightx = 1.0;
+		constraintsMail.weighty = 1.0;
+
+		openFrame.add(new JScrollPane(textAreaMessage), constraints);
 	}
 
 	public void composeMail() {
@@ -273,6 +347,8 @@ class FrontEnd {
 				Content = textAreaMessage.getText();
 				composeFrame.setVisible(false);
 				mainFrame.setVisible(true);
+				Email email= new Email("1", "<"+To+">", "<shikha@127.5.3.4>", Content, "", Subject);
+				new SMTPServer().sendEmail(email);
 				// }
 
 			}

@@ -42,9 +42,9 @@ public class SMTPServer extends Thread {
 			System.setProperty("javax.net.ssl.trustStore", Constants.KEYSTORE_PATH);
 		    System.setProperty("javax.net.ssl.trustStorePassword", Constants.KEYSTORE_PASSWORD);
 		    
-		    System.out.println(mailToSend.getFrom());
+		    //System.out.println(mailToSend.getFrom());
 			if(emailStorage.containsKey(new Client(mailToSend.getFrom()))) {
-				System.out.println("hitting");
+				//System.out.println("hitting");
 				emailStorage.get(new Client(mailToSend.getFrom())).add(mailToSend);
 			}else {
 				System.out.println("not added");
@@ -268,13 +268,16 @@ public class SMTPServer extends Thread {
 		emailStorage.put(new Client("<shikha@129.21.85.33>","shikha"), new ArrayList<Email>());
 		
 		SMTPServer receivingThread = new SMTPServer();
-		
-		//receivingThread.start();
+		receivingThread.start();
 		
 		//TODO: call this from the UI
-		Email newMail = new Email("123", "<omkarhegde2806@gmail.com>", "<omkar@129.21.85.33>", "This is a test", "30th Feb 2016" , "Test subject");
+
+		Email newMail = new Email("123", "<fcnprojectsmtp@gmail.com>", "<omkar@129.21.85.33>", "This is a test", "30th Feb 2016" , "Test subject");
 		new SMTPServer().sendEmail(newMail);
+		System.out.println(emailStorage.get(new Client("<omkar@129.21.85.33>")).size());
 		
+		System.out.println("IF EMail sent"+ emailStorage.get(new Client("<omkar@129.21.85.33>")).size());
+		new IMAP().start();
 		
 	}
 }
