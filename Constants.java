@@ -27,7 +27,7 @@ public class Constants {
 	public static final String GMAIL_ADDRESS = "gmail.com";
 	public static final String GMAIL_SMTP_HOST = "aspmx.l.google.com";
 	
-	public static final int IMAP_PORT=5432;
-	public static final String IMAP_IPADDRESS="localhost";//EC2 IP address
+	public static final int IMAP_PORT=993;
+	public static final String IMAP_IPADDRESS = "129.21.158.135";//EC2 IP address
 	
 }

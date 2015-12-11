@@ -24,13 +24,13 @@ public class SMTPServer extends Thread {
 	public static Hashtable<Client, ArrayList<Email>> emailStorage =  new Hashtable< Client, ArrayList<Email>>();
 
 	public static String getMailServer(String receiverEmail) {
-
+		
 		if(receiverEmail.contains(Constants.GMAIL_ADDRESS)) {
 			isGmail = true;
 			return Constants.GMAIL_SMTP_HOST;
 		}
 		else {
-			return "52.32.226.23";
+			return "52.35.127.215";
 		}
 	}
 	
