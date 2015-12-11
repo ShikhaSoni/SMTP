@@ -92,6 +92,7 @@ public class IMAP extends Thread {
 				}*/
 				emails = SMTPServer.emailStorage.get(new Client("<omkar@129.21.85.33>"));
 				System.out.println("Emails rec: "+emails.size()+"--------------");
+
 				/*if (!exists) {
 					writer.writeBytes(">No user found");
 					return;
@@ -152,6 +153,8 @@ public class IMAP extends Thread {
 					}
 				}
 				writer.write(("a4 OK Fetching complete"+'\n').getBytes());
+				
+
 			} catch (UnsupportedEncodingException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

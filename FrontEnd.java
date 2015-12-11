@@ -10,6 +10,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
+import java.util.ArrayList;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -77,7 +78,7 @@ class FrontEnd {
 		userLabel.setBounds(10, 10, 80, 25);
 		panel.add(userLabel);
 
-		JTextField userText = new JTextField(20);
+		final JTextField userText = new JTextField(20);
 		userText.setBounds(100, 10, 160, 25);
 		userText.setText("<omkar@129.21.85.33>");
 		panel.add(userText);
@@ -86,7 +87,7 @@ class FrontEnd {
 		passwordLabel.setBounds(10, 40, 80, 25);
 		panel.add(passwordLabel);
 
-		JPasswordField passwordText = new JPasswordField(20);
+		final JPasswordField passwordText = new JPasswordField(20);
 		passwordText.setBounds(100, 40, 160, 25);
 		panel.add(passwordText);
 
@@ -98,8 +99,8 @@ class FrontEnd {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				// aunthenticate the user and return true
-				username=userText.getText();
-				password=passwordText.getText();
+				username = userText.getText();
+				password = passwordText.getText();
 				frame.setVisible(false);
 				connectIMAP();
 				System.out.println("Goin to main window with"+inbox.length);
@@ -113,6 +114,9 @@ class FrontEnd {
 	}
 
 	public static void main(String[] args) {
+
+		SMTPServer.emailStorage.put(new Client("<omkar@129.21.85.33>","omkar"), new ArrayList<Email>());
+		SMTPServer.emailStorage.put(new Client("<shikha@129.21.85.33>","shikha"), new ArrayList<Email>());
 		new FrontEnd();
 	}
 	
@@ -176,10 +180,11 @@ class FrontEnd {
 				inbox[i-1]=new Email(a[0],a[3],a[2],a[4], a[1], a[5]);
 				i++;
 			}
-			command=reader.readLine();
+			if(number!=0)
+				command=reader.readLine();
 			System.out.println(command);
-			//System.out.println("Set main window");
-			
+			System.out.println("Set main window");
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -187,7 +192,7 @@ class FrontEnd {
 
 	public void mainWindow() {
 		System.out.println(inbox.length);
-		JList<Email> Inbox = new JList<Email>(inbox);
+		final JList<Email> Inbox = new JList<Email>(inbox);
 		System.out.println(Inbox.size());
 		if(mainFrame==null){
 			System.out.println("Null-------------");
@@ -314,6 +319,7 @@ class FrontEnd {
 		composeFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
 	private void setupForm() {
+
 		constraints.gridx = 0;
 		constraints.gridy = 0;
 		composeFrame.add(labelTo, constraints);
@@ -347,8 +353,10 @@ class FrontEnd {
 				Content = textAreaMessage.getText();
 				composeFrame.setVisible(false);
 				mainFrame.setVisible(true);
-				Email email= new Email("1", "<"+To+">", "<shikha@127.5.3.4>", Content, "", Subject);
+				Email email= new Email("1", "<"+To+">", "<omkar@129.21.85.33>", Content, "", Subject);
 				new SMTPServer().sendEmail(email);
+				connectIMAP();
+				mainWindow();
 				// }
 
 			}

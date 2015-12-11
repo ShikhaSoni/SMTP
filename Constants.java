@@ -4,7 +4,7 @@ public class Constants {
 	public final static int SMTP_PORT = 25;
 	public final static int SMTP_SECURE_PORT = 465;
 	
-	public static final String KEYSTORE_PATH = "C:\\Program Files\\Java\\jre1.8.0_60\\lib\\security\\cacerts";
+	public static final String KEYSTORE_PATH = "C:\\Program Files\\Java\\jre7\\lib\\security\\cacerts";
 	public static final String KEYSTORE_PASSWORD = "changeit";
 	
 	public static final String SERVICE_READY = "220";
@@ -27,7 +27,7 @@ public class Constants {
 	public static final String GMAIL_ADDRESS = "gmail.com";
 	public static final String GMAIL_SMTP_HOST = "aspmx.l.google.com";
 	
-	public static final int IMAP_PORT=993;
+	public static final int IMAP_PORT=5432;
 	public static final String IMAP_IPADDRESS="localhost";//EC2 IP address
 	
 }

@@ -24,7 +24,7 @@ public class SMTPServer extends Thread {
 	public static Hashtable<Client, ArrayList<Email>> emailStorage =  new Hashtable< Client, ArrayList<Email>>();
 
 	public static String getMailServer(String receiverEmail) {
-		
+
 		if(receiverEmail.contains(Constants.GMAIL_ADDRESS)) {
 			isGmail = true;
 			return Constants.GMAIL_SMTP_HOST;
@@ -38,14 +38,15 @@ public class SMTPServer extends Thread {
 		
 		try
 		{
-			
+
 			System.setProperty("javax.net.ssl.trustStore", Constants.KEYSTORE_PATH);
 		    System.setProperty("javax.net.ssl.trustStorePassword", Constants.KEYSTORE_PASSWORD);
 		    
-		    //System.out.println(mailToSend.getFrom());
-			if(emailStorage.containsKey(new Client(mailToSend.getFrom()))) {
-				//System.out.println("hitting");
-				emailStorage.get(new Client(mailToSend.getFrom())).add(mailToSend);
+		    Client test = new Client(mailToSend.getFrom().trim());
+		    System.out.println(test.getUsername() + ":" + emailStorage.size());
+			if(emailStorage.containsKey(test)) {
+				System.out.println("hitting");
+				emailStorage.get(new Client(mailToSend.getFrom().trim())).add(mailToSend);
 			}else {
 				System.out.println("not added");
 			}
@@ -116,7 +117,7 @@ public class SMTPServer extends Thread {
 				sslContext.init(keyManagers, null, null);
 	
 				SSLSocketFactory ssf = sslContext.getSocketFactory();
-				SSLSocket s = (SSLSocket) ssf.createSocket(sendEmailSocket, "imap.gmail.com", 993, true);
+				SSLSocket s = (SSLSocket) ssf.createSocket(sendEmailSocket, Constants.GMAIL_SMTP_HOST, Constants.SMTP_SECURE_PORT, true);
 				String[] st = s.getEnabledProtocols();
 	
 				s.setEnabledProtocols(st);
@@ -171,6 +172,9 @@ public class SMTPServer extends Thread {
 			os.write(command.getBytes("US-ASCII"));
 			response = br.readLine();
 
+			command = Constants.QUIT_COMMAND + Constants.MESSAGE_TERMINATION;
+			os.write(command.getBytes("US-ASCII"));
+
 			System.out.println("Message Sent Successfully " + response);
 		}
 		catch(Exception e) {
@@ -206,7 +210,6 @@ public class SMTPServer extends Thread {
 				os.write(command.getBytes("US-ASCII"));
 
 				String receivedResponse = "";
-				
 
 				while (receivedResponse.equals(Constants.QUIT_COMMAND) == false) {
 					receivedResponse = br.readLine();
@@ -229,12 +232,11 @@ public class SMTPServer extends Thread {
 						}
 						else if(splitResponse[0].equals("Subject")) {
 							subject = splitResponse[1];
-						}
-						else if(splitResponse[0].equals("Content-Type") && splitResponse[1].contains("text/plain")) {
+							command = Constants.OPERATION_COMPLETE + " " + Constants.MESSAGE_TERMINATION;
+							os.write(command.getBytes("US-ASCII"));
 							messageBody = br.readLine();
-							while(messageBody.length() == 0)
-								messageBody = br.readLine();
-						}						
+							System.out.println("BODY: "+ messageBody);
+						}					
 					}
 
 					command = Constants.OPERATION_COMPLETE + " " + Constants.MESSAGE_TERMINATION;
@@ -243,9 +245,9 @@ public class SMTPServer extends Thread {
 				}
 				
 				Email receivedMail = new Email(messageID, toEmail, senderEmail, messageBody, dateAndTime, subject);
-				if(emailStorage.containsKey(new Client(toEmail))) {
-					emailStorage.get(new Client(toEmail)).add(receivedMail);
-				}
+
+				System.out.println(receivedMail.getContent() + " " +receivedMail.getFrom() + " " + receivedMail.getTo() + " " + receivedMail.getSubject());
+				sendEmail(receivedMail);
 
 				System.out.println("Received EMAIL Successfully!");
 				socket.close();
@@ -266,17 +268,9 @@ public class SMTPServer extends Thread {
 		//TODO: change IP to EC2 instance IP
 		emailStorage.put(new Client("<omkar@129.21.85.33>","omkar"), new ArrayList<Email>());
 		emailStorage.put(new Client("<shikha@129.21.85.33>","shikha"), new ArrayList<Email>());
-		
 		SMTPServer receivingThread = new SMTPServer();
 		receivingThread.start();
 		
-		//TODO: call this from the UI
-
-		Email newMail = new Email("123", "<fcnprojectsmtp@gmail.com>", "<omkar@129.21.85.33>", "This is a test", "30th Feb 2016" , "Test subject");
-		new SMTPServer().sendEmail(newMail);
-		System.out.println(emailStorage.get(new Client("<omkar@129.21.85.33>")).size());
-		
-		System.out.println("IF EMail sent"+ emailStorage.get(new Client("<omkar@129.21.85.33>")).size());
 		new IMAP().start();
 		
 	}

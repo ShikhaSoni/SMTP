@@ -25,7 +25,11 @@ public class Client {
 	
 	@Override
 	public boolean equals(Object obj) {
-		return this.username.equals(((Client)obj).username);		
+		String otherUser = ((Client)obj).username.trim();
+		System.out.println(username + " "+otherUser);
+		boolean val=  this.username.equals(otherUser);
+		System.out.println(val);
+		return val;
 	}
 	
 	@Override
